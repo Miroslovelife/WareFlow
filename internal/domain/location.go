@@ -7,3 +7,10 @@ type Location struct {
 	Latitude  float64
 	Longitude float64
 }
+
+type LocationRepository interface {
+	GetByID(id int) (Location, error)
+	Create(location Location) error
+	Update(location Location) error
+	Delete(location Location) error
+}
