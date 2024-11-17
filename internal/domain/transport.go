@@ -1,11 +1,11 @@
 package domain
 
 type Transport struct {
-	ID         int
-	Type       string
-	Capacity   int
-	FuelType   string
-	Efficiency float64
+	ID             int
+	Type           string
+	CapacityVolume int
+	CapacityWeight int
+	Expense        float64
 }
 
 type TransportRepository interface {

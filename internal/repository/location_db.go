@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"WareFlow/internal/domain"
 	"context"
+	"github.com/Miroslovelife/WareFlow/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )

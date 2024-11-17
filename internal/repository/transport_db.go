@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"WareFlow/internal/domain"
 	"context"
 	"errors"
+	"github.com/Miroslovelife/WareFlow/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"time"
@@ -47,10 +47,10 @@ func (r *TransportRepositoryMongo) Update(transport *domain.Transport) error {
 	filter := bson.M{"id": transport.ID}
 	update := bson.M{
 		"$set": bson.M{
-			"type":       transport.Type,
-			"capacity":   transport.Capacity,
-			"fuelType":   transport.FuelType,
-			"efficiency": transport.Efficiency,
+			"type":           transport.Type,
+			"capacity":       transport.CapacityVolume,
+			"capacityWeight": transport.CapacityWeight,
+			"expense":        transport.Expense,
 		},
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

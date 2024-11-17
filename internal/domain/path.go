@@ -5,6 +5,7 @@ type Path struct {
 	EndLocationID   int
 	Distance        float64
 	Duration        float64
+	FuelPrice       float64
 }
 
 type PathRepository interface {
