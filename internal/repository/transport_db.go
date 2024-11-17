@@ -13,50 +13,48 @@ type TransportRepositoryMongo struct {
 	collection *mongo.Collection
 }
 
-func NewTransportRepositoryMongo(db *mongo.Database) *TransportRepositoryMongo {
-	return &TransportRepositoryMongo{
-		collection: db.Collection("transports"),
-	}
+// NewTransportRepositoryMongo создает репозиторий для транспорта
+func NewTransportRepositoryMongo(collection *mongo.Collection) *TransportRepositoryMongo {
+	return &TransportRepositoryMongo{collection: collection}
 }
 
-func (r *TransportRepositoryMongo) GetByID(id int) (*domain.Transport, error) {
+func (repo *TransportRepositoryMongo) GetByID(id int) (*domain.Transport, error) {
 	var transport domain.Transport
 	filter := bson.M{"id": id}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := r.collection.FindOne(ctx, filter).Decode(&transport)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
-		}
-		return nil, err
+	err := repo.collection.FindOne(ctx, filter).Decode(&transport)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
 	}
-	return &transport, nil
+	return &transport, err
 }
 
-func (r *TransportRepositoryMongo) Create(transport *domain.Transport) error {
+func (repo *TransportRepositoryMongo) Create(transport *domain.Transport) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := r.collection.InsertOne(ctx, transport)
+	_, err := repo.collection.InsertOne(ctx, transport)
 	return err
 }
 
-func (r *TransportRepositoryMongo) Update(transport *domain.Transport) error {
+func (repo *TransportRepositoryMongo) Update(transport *domain.Transport) error {
 	filter := bson.M{"id": transport.ID}
 	update := bson.M{
 		"$set": bson.M{
 			"type":           transport.Type,
-			"capacity":       transport.CapacityVolume,
-			"capacityWeight": transport.CapacityWeight,
+			"capacityvolume": transport.CapacityVolume,
+			"capacityweight": transport.CapacityWeight,
 			"expense":        transport.Expense,
 		},
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result, err := r.collection.UpdateOne(ctx, filter, update)
+	result, err := repo.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}
@@ -66,12 +64,13 @@ func (r *TransportRepositoryMongo) Update(transport *domain.Transport) error {
 	return nil
 }
 
-func (r *TransportRepositoryMongo) Delete(id int) error {
+func (repo *TransportRepositoryMongo) Delete(id int) error {
 	filter := bson.M{"id": id}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result, err := r.collection.DeleteOne(ctx, filter)
+	result, err := repo.collection.DeleteOne(ctx, filter)
 	if err != nil {
 		return err
 	}

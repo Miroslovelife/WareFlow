@@ -18,7 +18,7 @@ type OptimizationResult struct {
 
 type OptimizationResultRepository interface {
 	GetByID(id int) (*OptimizationResult, error)
-	Create(path *OptimizationResult) error
-	Update(path *OptimizationResult) error
-	Delete(path *OptimizationResult) error
+	Create(result *OptimizationResult) error
+	Update(result *OptimizationResult) error
+	Delete(result *OptimizationResult) error // Ожидается указатель на OptimizationResult
 }

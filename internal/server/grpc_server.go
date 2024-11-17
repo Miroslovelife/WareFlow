@@ -9,7 +9,33 @@ import (
 
 type OptimizationServiceServer struct {
 	pb.UnimplementedWareFlowServiceServer
-	Optimization domain.OptimizationService
+	Optimization           domain.OptimizationService
+	WarehouseRepo          domain.WareHouseRepository
+	CargoRepo              domain.CargoRepository
+	TransportRepo          domain.TransportRepository
+	LocationRepo           domain.LocationRepository           // Добавлено
+	PathRepo               domain.PathRepository               // Добавлено
+	OptimizationResultRepo domain.OptimizationResultRepository // Добавлено
+}
+
+func NewOptimizationServiceServer(
+	optimizationService domain.OptimizationService,
+	warehouseRepo domain.WareHouseRepository,
+	cargoRepo domain.CargoRepository,
+	transportRepo domain.TransportRepository,
+	locationRepo domain.LocationRepository,
+	pathRepo domain.PathRepository,
+	optimizationResultRepo domain.OptimizationResultRepository,
+) *OptimizationServiceServer {
+	return &OptimizationServiceServer{
+		Optimization:           optimizationService,
+		WarehouseRepo:          warehouseRepo,
+		CargoRepo:              cargoRepo,
+		TransportRepo:          transportRepo,
+		LocationRepo:           locationRepo,
+		PathRepo:               pathRepo,
+		OptimizationResultRepo: optimizationResultRepo,
+	}
 }
 
 func (s *OptimizationServiceServer) CalculateOptimalPath(ctx context.Context, req *pb.OptimizationRequest) (*pb.OptimizationResponse, error) {

@@ -5,14 +5,15 @@ import (
 	"github.com/Miroslovelife/WareFlow/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 type CargoRepositoryMongo struct {
 	collection *mongo.Collection
 }
 
-func NewMongoCargoRepository(client *mongo.Client, dbName, collectionName string) *CargoRepositoryMongo {
-	collection := client.Database(dbName).Collection(collectionName)
+// Конструктор репозитория для Cargo
+func NewMongoCargoRepository(collection *mongo.Collection) *CargoRepositoryMongo {
 	return &CargoRepositoryMongo{collection: collection}
 }
 
@@ -20,19 +21,21 @@ func (repo *CargoRepositoryMongo) GetByID(id int) (*domain.Cargo, error) {
 	var cargo domain.Cargo
 	filter := bson.M{"id": id}
 
-	err := repo.collection.FindOne(context.TODO(), filter).Decode(&cargo)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	return &cargo, nil
+	err := repo.collection.FindOne(ctx, filter).Decode(&cargo)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	return &cargo, err
 }
 
 func (repo *CargoRepositoryMongo) Create(cargo *domain.Cargo) error {
-	_, err := repo.collection.InsertOne(context.TODO(), cargo)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.InsertOne(ctx, cargo)
 	return err
 }
 
@@ -46,13 +49,19 @@ func (repo *CargoRepositoryMongo) Update(cargo *domain.Cargo) error {
 		},
 	}
 
-	_, err := repo.collection.UpdateOne(context.TODO(), filter, update)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
 func (repo *CargoRepositoryMongo) Delete(cargo *domain.Cargo) error {
 	filter := bson.M{"id": cargo.ID}
 
-	_, err := repo.collection.DeleteOne(context.TODO(), filter)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.DeleteOne(ctx, filter)
 	return err
 }

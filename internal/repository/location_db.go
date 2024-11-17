@@ -5,34 +5,37 @@ import (
 	"github.com/Miroslovelife/WareFlow/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 type LocationRepositoryMongo struct {
 	collection *mongo.Collection
 }
 
-func NewMongoLocationRepository(client *mongo.Client, dbName, collectionName string) *LocationRepositoryMongo {
-	collection := client.Database(dbName).Collection(collectionName)
+// Конструктор
+func NewMongoLocationRepository(collection *mongo.Collection) *LocationRepositoryMongo {
 	return &LocationRepositoryMongo{collection: collection}
 }
 
-func (repo *LocationRepositoryMongo) GetByID(id int) (*domain.Location, error) {
+func (repo *LocationRepositoryMongo) GetByID(id int) (domain.Location, error) {
 	var location domain.Location
 	filter := bson.M{"id": id}
 
-	err := repo.collection.FindOne(context.TODO(), filter).Decode(&location)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	return &location, nil
+	err := repo.collection.FindOne(ctx, filter).Decode(&location)
+	if err == mongo.ErrNoDocuments {
+		return domain.Location{}, nil // Возвращаем пустую структуру, если документ не найден
+	}
+	return location, err
 }
 
 func (repo *LocationRepositoryMongo) Create(location *domain.Location) error {
-	_, err := repo.collection.InsertOne(context.TODO(), location)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.InsertOne(ctx, location)
 	return err
 }
 
@@ -47,13 +50,19 @@ func (repo *LocationRepositoryMongo) Update(location *domain.Location) error {
 		},
 	}
 
-	_, err := repo.collection.UpdateOne(context.TODO(), filter, update)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
-func (repo *LocationRepositoryMongo) Delete(location *domain.Location) error {
-	filter := bson.M{"id": location.ID}
+func (repo *LocationRepositoryMongo) Delete(id int) error {
+	filter := bson.M{"id": id}
 
-	_, err := repo.collection.DeleteOne(context.TODO(), filter)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.DeleteOne(ctx, filter)
 	return err
 }

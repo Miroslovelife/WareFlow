@@ -12,5 +12,5 @@ type PathRepository interface {
 	GetByID(id int) (*Path, error)
 	Create(path *Path) error
 	Update(path *Path) error
-	Delete(path *Path) error
+	Delete(path *Path) error // Ожидается указатель на Path
 }

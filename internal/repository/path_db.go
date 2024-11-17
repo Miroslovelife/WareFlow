@@ -5,14 +5,15 @@ import (
 	"github.com/Miroslovelife/WareFlow/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 type PathRepositoryMongo struct {
 	collection *mongo.Collection
 }
 
-func NewMongoPathRepository(client *mongo.Client, dbName, collectionName string) *PathRepositoryMongo {
-	collection := client.Database(dbName).Collection(collectionName)
+// NewMongoPathRepository создает новый экземпляр репозитория для пути
+func NewMongoPathRepository(collection *mongo.Collection) *PathRepositoryMongo {
 	return &PathRepositoryMongo{collection: collection}
 }
 
@@ -20,24 +21,26 @@ func (repo *PathRepositoryMongo) GetByID(id int) (*domain.Path, error) {
 	var path domain.Path
 	filter := bson.M{"id": id}
 
-	err := repo.collection.FindOne(context.TODO(), filter).Decode(&path)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	return &path, nil
+	err := repo.collection.FindOne(ctx, filter).Decode(&path)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	return &path, err
 }
 
 func (repo *PathRepositoryMongo) Create(path *domain.Path) error {
-	_, err := repo.collection.InsertOne(context.TODO(), path)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.InsertOne(ctx, path)
 	return err
 }
 
 func (repo *PathRepositoryMongo) Update(path *domain.Path) error {
-	filter := bson.M{"id": path.StartLocationID} // Используем `StartLocationID` или другой уникальный идентификатор записи
+	filter := bson.M{"id": path.StartLocationID}
 	update := bson.M{
 		"$set": bson.M{
 			"endlocationid": path.EndLocationID,
@@ -46,13 +49,19 @@ func (repo *PathRepositoryMongo) Update(path *domain.Path) error {
 		},
 	}
 
-	_, err := repo.collection.UpdateOne(context.TODO(), filter, update)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
 func (repo *PathRepositoryMongo) Delete(path *domain.Path) error {
-	filter := bson.M{"id": path.StartLocationID} // Используем `StartLocationID` или другой уникальный идентификатор записи
+	filter := bson.M{"id": path.StartLocationID}
 
-	_, err := repo.collection.DeleteOne(context.TODO(), filter)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.collection.DeleteOne(ctx, filter)
 	return err
 }
