@@ -1,4 +1,4 @@
-package domain
+package models
 
 type Transport struct {
 	ID             int
@@ -6,11 +6,4 @@ type Transport struct {
 	CapacityVolume int
 	CapacityWeight int
 	Expense        float64
-}
-
-type TransportRepository interface {
-	GetByID(id int) (*Transport, error)
-	Create(transport *Transport) error
-	Update(transport *Transport) error
-	Delete(id int) error
 }

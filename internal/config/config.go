@@ -16,7 +16,6 @@ type Config struct {
 	DBName   DBName   `yaml:"db_name"`
 }
 
-// LoadConfig загружает конфигурацию из YAML-файла
 func LoadConfig(path string) (*Config, error) {
 	file, err := os.Open(path)
 	if err != nil {

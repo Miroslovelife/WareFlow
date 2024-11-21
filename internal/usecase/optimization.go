@@ -1,31 +1,46 @@
 package usecase
 
 import (
-	"github.com/Miroslovelife/WareFlow/internal/domain"
+	"github.com/Miroslovelife/WareFlow/internal/domain/models"
+	"github.com/Miroslovelife/WareFlow/internal/repository"
 	"github.com/Miroslovelife/WareFlow/pkg/simplex"
 )
 
 type OptimizationUseCase struct {
-	optimizer *simplex.SimplexOptimizer
-	fuelPrice float64
+	optimizer     *simplex.SimplexOptimizer
+	fuelPrice     float64
+	cargoRepo     *repository.MongoGenericRepository[models.Cargo]
+	transportRepo *repository.MongoGenericRepository[models.Transport]
+	warehouseRepo *repository.MongoGenericRepository[models.WareHouse]
 }
 
-func NewOptimizationUseCase(optimizer *simplex.SimplexOptimizer, fuelPrice float64) *OptimizationUseCase {
-	return &OptimizationUseCase{optimizer: optimizer, fuelPrice: fuelPrice}
+func NewOptimizationUseCase(
+	optimizer *simplex.SimplexOptimizer,
+	fuelPrice float64,
+	cargoRepo *repository.MongoGenericRepository[models.Cargo],
+	transportRepo *repository.MongoGenericRepository[models.Transport],
+	warehouseRepo *repository.MongoGenericRepository[models.WareHouse],
+) *OptimizationUseCase {
+	return &OptimizationUseCase{
+		optimizer:     optimizer,
+		fuelPrice:     fuelPrice,
+		cargoRepo:     cargoRepo,
+		transportRepo: transportRepo,
+		warehouseRepo: warehouseRepo,
+	}
 }
 
 func (u *OptimizationUseCase) CalculateOptimalPath(
-	warehouses []domain.WareHouse,
-	transports []domain.Transport,
-	cargos []domain.Cargo,
-) (*domain.OptimizationResult, error) {
-	// Формируем список путей (в примере это базовые данные, вы можете загрузить их из базы)
-	paths := []domain.Path{
+	warehouses []models.WareHouse,
+	transports []models.Transport,
+	cargos []models.Cargo,
+) (*models.OptimizationResult, error) {
+
+	paths := []models.Path{
 		{StartLocationID: 1, EndLocationID: 2, Distance: 100.0, Duration: 1.5},
 		{StartLocationID: 2, EndLocationID: 3, Distance: 150.0, Duration: 2.0},
 	}
 
-	// Определяем количество путей и транспортных средств
 	numPaths := len(paths)
 	numTransports := len(transports)
 
@@ -36,7 +51,6 @@ func (u *OptimizationUseCase) CalculateOptimalPath(
 		}
 	}
 
-	// Определяем ограничения
 	var constraints [][]float64
 	var bounds []float64
 
@@ -72,8 +86,7 @@ func (u *OptimizationUseCase) CalculateOptimalPath(
 		return nil, err
 	}
 
-	// Формируем результат
-	var selectedPaths []domain.Path
+	var selectedPaths []models.Path
 	var selectedTransportIDs []int
 	totalDistance := 0.0
 
@@ -88,7 +101,7 @@ func (u *OptimizationUseCase) CalculateOptimalPath(
 		}
 	}
 
-	return &domain.OptimizationResult{
+	return &models.OptimizationResult{
 		TransportID:   selectedTransportIDs,
 		TotalDistance: totalDistance,
 		TotalCost:     objective,
