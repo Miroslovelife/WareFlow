@@ -1,42 +1,82 @@
 package main
 
 import (
+	"github.com/Miroslovelife/WareFlow/internal/adapter/grpc_ware_flow"
+	"github.com/Miroslovelife/WareFlow/internal/domain/models"
+	"github.com/Miroslovelife/WareFlow/pkg/mongo"
+	"google.golang.org/grpc"
 	"log"
 	"net"
 
 	pb "github.com/Miroslovelife/WareFlow/github.com/miroslav/WareFlowV2/proto"
-	"github.com/Miroslovelife/WareFlow/internal/config"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"github.com/Miroslovelife/WareFlow/internal/repository"
+	"github.com/Miroslovelife/WareFlow/internal/usecase"
+	"github.com/Miroslovelife/WareFlow/pkg/simplex"
 )
 
 func main() {
-	// Загрузка конфигурации
-	cfg, err := config.LoadConfig("./cfg.yaml")
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
+	// === Настройка MongoDB клиента ===
+	mongoURI := "mongodb://localhost:27017"
+	databaseName := "wareflow"
 
-	// Инициализация сервера с конфигурацией
-	server, err := InitializeServer(cfg)
+	mongoClient, err := mongo.NewMongoClient(mongoURI, databaseName)
 	if err != nil {
-		log.Fatalf("Failed to initialize server: %v", err)
+		log.Fatalf("Failed to initialize MongoDB client: %v", err)
 	}
+	defer func() {
+		if err := mongoClient.Close(); err != nil {
+			log.Fatalf("Failed to close MongoDB client: %v", err)
+		}
+	}()
 
-	// Настройка gRPC сервера
+	warehouseCollection := mongoClient.GetCollection("warehouses")
+	cargoCollection := mongoClient.GetCollection("cargos")
+	transportCollection := mongoClient.GetCollection("transports")
+	locationCollection := mongoClient.GetCollection("locations")
+	pathCollection := mongoClient.GetCollection("paths")
+	optimizationResultCollection := mongoClient.GetCollection("optimization_results")
+
+	warehouseRepo := repository.NewMongoGenericRepository[models.WareHouse](warehouseCollection)
+	cargoRepo := repository.NewMongoGenericRepository[models.Cargo](cargoCollection)
+	transportRepo := repository.NewMongoGenericRepository[models.Transport](transportCollection)
+	locationRepo := repository.NewMongoGenericRepository[models.Location](locationCollection)
+	pathRepo := repository.NewMongoGenericRepository[models.Path](pathCollection)
+	optimizationResultRepo := repository.NewMongoGenericRepository[models.OptimizationResult](optimizationResultCollection)
+
+	optimizer := simplex.NewSimplexOptimizer()
+	fuelPrice := 1.5
+
+	optimizationUseCase := usecase.NewOptimizationUseCase(
+		optimizer,
+		fuelPrice,
+		cargoRepo,
+		transportRepo,
+		warehouseRepo,
+	)
+
+	// === Инициализация gRPC сервера ===
+	grpcServer := grpc_ware_flow.NewWareFlowServiceServer(
+		warehouseRepo,
+		cargoRepo,
+		transportRepo,
+		locationRepo,
+		pathRepo,
+		optimizationResultRepo,
+		optimizationUseCase,
+	)
+
 	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("Failed to listen on port 50051: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
-	pb.RegisterWareFlowServiceServer(grpcServer, server)
+	server := grpc.NewServer()
+	pb.RegisterWareFlowServiceServer(server, grpcServer)
 
-	// Включаем рефлексию для отладки
-	reflection.Register(grpcServer)
+	log.Println("WareFlow gRPC server is running on port 50051...")
 
-	log.Println("gRPC server is running on port 50051")
-	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+	// Запуск gRPC-сервера
+	if err := server.Serve(listener); err != nil {
+		log.Fatalf("Failed to serve gRPC server: %v", err)
 	}
 }
